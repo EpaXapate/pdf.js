@@ -15,11 +15,15 @@
 /* eslint no-var: error */
 
 import {
-  AbortException, assert, createPromiseCapability
+  AbortException,
+  assert,
+  createPromiseCapability
 } from '../shared/util';
 import {
-  createResponseStatusError, extractFilenameFromHeader,
-  validateRangeRequestCapabilities, validateResponseStatus
+  createResponseStatusError,
+  extractFilenameFromHeader,
+  validateRangeRequestCapabilities,
+  validateResponseStatus
 } from './network_utils';
 
 function createFetchOptions(headers, withCredentials, abortController) {
@@ -110,7 +114,7 @@ class PDFFetchStreamReader {
     fetch(url, createFetchOptions(this._headers, this._withCredentials,
         this._abortController)).then((response) => {
       if (!validateResponseStatus(response.status)) {
-        throw createResponseStatusError(response.status, url);
+        throw createResponseStatusError(response.status, url, response);
       }
       this._reader = response.body.getReader();
       this._headersCapability.resolve();
@@ -218,7 +222,7 @@ class PDFFetchStreamRangeReader {
     fetch(url, createFetchOptions(this._headers, this._withCredentials,
         this._abortController)).then((response) => {
       if (!validateResponseStatus(response.status)) {
-        throw createResponseStatusError(response.status, url);
+        throw createResponseStatusError(response.status, url, response);
       }
       this._readCapability.resolve();
       this._reader = response.body.getReader();

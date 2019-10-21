@@ -434,9 +434,24 @@ class InvalidPDFException extends BaseException { }
 class MissingPDFException extends BaseException { }
 
 class UnexpectedResponseException extends BaseException {
-  constructor(msg, status) {
+  constructor(msg, status, response) {
     super(msg);
     this.status = status;
+    this.headers = UnexpectedResponseException.parseHeaders(response);
+  }
+
+  static parseHeaders(response) {
+    const res = {};
+    if (!response || !response.headers) {
+      return res;
+    }
+    if (!(response.headers instanceof Headers)) {
+      return response.headers;
+    }
+    response.headers.forEach(function (value, name) {
+      res[name] = value;
+    });
+    return res;
   }
 }
 

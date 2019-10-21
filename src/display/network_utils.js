@@ -14,11 +14,11 @@
  */
 
 import {
-  assert, MissingPDFException, UnexpectedResponseException
+  assert,
+  MissingPDFException,
+  UnexpectedResponseException
 } from '../shared/util';
-import {
-  getFilenameFromContentDispositionHeader
-} from './content_disposition';
+import { getFilenameFromContentDispositionHeader } from './content_disposition';
 
 function validateRangeRequestCapabilities({ getResponseHeader, isHttp,
                                             rangeChunkSize, disableRange, }) {
@@ -73,13 +73,13 @@ function extractFilenameFromHeader(getResponseHeader) {
   return null;
 }
 
-function createResponseStatusError(status, url) {
+function createResponseStatusError(status, url, response) {
   if (status === 404 || status === 0 && /^file:/.test(url)) {
     return new MissingPDFException('Missing PDF "' + url + '".');
   }
   return new UnexpectedResponseException(
     'Unexpected server response (' + status +
-    ') while retrieving PDF "' + url + '".', status);
+    ') while retrieving PDF "' + url + '".', status, response);
 }
 
 function validateResponseStatus(status) {
