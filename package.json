@@ -1,6 +1,9 @@
 {
   "name": "pdf.js",
-  "version": "2.0.0",
+  "version": "2.2.228",
+  "publishConfig": {
+    "registry": "http://nexus.centralgest.com/repository/npm-private/"
+  },
   "devDependencies": {
     "@babel/core": "^7.6.4",
     "@babel/plugin-transform-modules-commonjs": "^7.6.0",
