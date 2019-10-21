@@ -19,26 +19,45 @@
  * @module pdfjsLib
  */
 
+import globalScope from '../shared/global_scope';
+import { MessageHandler } from '../shared/message_handler';
 import {
-  AbortException, assert, createPromiseCapability, getVerbosityLevel, info,
-  InvalidPDFException, isArrayBuffer, isSameOrigin, MissingPDFException,
-  NativeImageDecoding, PasswordException, setVerbosityLevel, shadow,
-  stringToBytes, UnexpectedResponseException, UnknownErrorException,
-  unreachable, warn
+  AbortException,
+  assert,
+  createPromiseCapability,
+  getVerbosityLevel,
+  info,
+  InvalidPDFException,
+  isArrayBuffer,
+  isSameOrigin,
+  MissingPDFException,
+  NativeImageDecoding,
+  PasswordException,
+  setVerbosityLevel,
+  shadow,
+  stringToBytes,
+  UnexpectedResponseException,
+  UnknownErrorException,
+  unreachable,
+  warn
 } from '../shared/util';
-import {
-  DOMCanvasFactory, DOMCMapReaderFactory, DummyStatTimer, loadScript,
-  PageViewport, releaseImageResources, RenderingCancelledException, StatTimer
-} from './display_utils';
-import { FontFaceObject, FontLoader } from './font_loader';
 import { apiCompatibilityParams } from './api_compatibility';
 import { CanvasGraphics } from './canvas';
-import globalScope from '../shared/global_scope';
-import { GlobalWorkerOptions } from './worker_options';
-import { MessageHandler } from '../shared/message_handler';
+import {
+  DOMCanvasFactory,
+  DOMCMapReaderFactory,
+  DummyStatTimer,
+  loadScript,
+  PageViewport,
+  releaseImageResources,
+  RenderingCancelledException,
+  StatTimer
+} from './display_utils';
+import { FontFaceObject, FontLoader } from './font_loader';
 import { Metadata } from './metadata';
 import { PDFDataTransportStream } from './transport_stream';
 import { WebGLContext } from './webgl';
+import { GlobalWorkerOptions } from './worker_options';
 
 const DEFAULT_RANGE_CHUNK_SIZE = 65536; // 2^16 = 65536
 const RENDERING_CANCELLED_TIMEOUT = 100; // ms
@@ -2014,7 +2033,7 @@ class WorkerTransport {
           reason = new MissingPDFException(ex.message);
           break;
         case 'UnexpectedResponseException':
-          reason = new UnexpectedResponseException(ex.message, ex.status);
+          reason = new UnexpectedResponseException(ex.message, ex.status, ex.headers);
           break;
         case 'UnknownErrorException':
           reason = new UnknownErrorException(ex.message, ex.details);

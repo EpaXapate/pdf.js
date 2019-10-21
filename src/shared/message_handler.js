@@ -14,8 +14,13 @@
  */
 
 import {
-  AbortException, assert, createPromiseCapability, MissingPDFException,
-  ReadableStream, UnexpectedResponseException, UnknownErrorException
+  AbortException,
+  assert,
+  createPromiseCapability,
+  MissingPDFException,
+  ReadableStream,
+  UnexpectedResponseException,
+  UnknownErrorException
 } from './util';
 
 const StreamKind = {
@@ -46,7 +51,7 @@ function wrapReason(reason) {
     case 'MissingPDFException':
       return new MissingPDFException(reason.message);
     case 'UnexpectedResponseException':
-      return new UnexpectedResponseException(reason.message, reason.status);
+      return new UnexpectedResponseException(reason.message, reason.status, reason.headers);
     case 'UnknownErrorException':
       return new UnknownErrorException(reason.message, reason.details);
     default:
