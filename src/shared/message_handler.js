@@ -51,7 +51,7 @@ function wrapReason(reason) {
     case 'MissingPDFException':
       return new MissingPDFException(reason.message);
     case 'UnexpectedResponseException':
-      return new UnexpectedResponseException(reason.message, reason.status, reason.headers);
+      return new UnexpectedResponseException(reason.message, reason.status, reason);
     case 'UnknownErrorException':
       return new UnknownErrorException(reason.message, reason.details);
     default:
