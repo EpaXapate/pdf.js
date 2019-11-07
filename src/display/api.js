@@ -2033,7 +2033,7 @@ class WorkerTransport {
           reason = new MissingPDFException(ex.message);
           break;
         case 'UnexpectedResponseException':
-          reason = new UnexpectedResponseException(ex.message, ex.status, ex.headers);
+          reason = new UnexpectedResponseException(ex.message, ex.status, ex);
           break;
         case 'UnknownErrorException':
           reason = new UnknownErrorException(ex.message, ex.details);
