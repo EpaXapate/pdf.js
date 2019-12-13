@@ -13,18 +13,29 @@
  * limitations under the License.
  */
 
-import {
-  AbortException, arrayByteLength, arraysToBytes, createPromiseCapability,
-  getVerbosityLevel, info, InvalidPDFException, MissingPDFException,
-  PasswordException, setVerbosityLevel, UnexpectedResponseException,
-  UnknownErrorException, UNSUPPORTED_FEATURES, VerbosityLevel, warn
-} from '../shared/util';
-import { clearPrimitiveCaches, Ref } from './primitives';
-import { LocalPdfManager, NetworkPdfManager } from './pdf_manager';
 import isNodeJS from '../shared/is_node';
 import { MessageHandler } from '../shared/message_handler';
-import { PDFWorkerStream } from './worker_stream';
+import {
+  AbortException,
+  arrayByteLength,
+  arraysToBytes,
+  createPromiseCapability,
+  getVerbosityLevel,
+  info,
+  InvalidPDFException,
+  MissingPDFException,
+  PasswordException,
+  setVerbosityLevel,
+  UnexpectedResponseException,
+  UnknownErrorException,
+  UNSUPPORTED_FEATURES,
+  VerbosityLevel,
+  warn
+} from '../shared/util';
 import { XRefParseException } from './core_utils';
+import { LocalPdfManager, NetworkPdfManager } from './pdf_manager';
+import { clearPrimitiveCaches, Ref } from './primitives';
+import { PDFWorkerStream } from './worker_stream';
 
 var WorkerTask = (function WorkerTaskClosure() {
   function WorkerTask(name) {
@@ -292,7 +303,7 @@ var WorkerMessageHandler = {
           handler.send('DocException', ex);
         } else {
           handler.send('DocException',
-                       new UnknownErrorException(ex.message, ex.toString()));
+            new UnknownErrorException(ex.message, ex.toString(), ex));
         }
       }
 

@@ -423,9 +423,10 @@ class PasswordException extends BaseException {
 }
 
 class UnknownErrorException extends BaseException {
-  constructor(msg, details) {
+  constructor(msg, details, response) {
     super(msg);
     this.details = details;
+    this.headers = parseHeaders(response);
   }
 }
 
@@ -437,21 +438,7 @@ class UnexpectedResponseException extends BaseException {
   constructor(msg, status, response) {
     super(msg);
     this.status = status;
-    this.headers = UnexpectedResponseException.parseHeaders(response);
-  }
-
-  static parseHeaders(response) {
-    const res = {};
-    if (!response || !response.headers) {
-      return res;
-    }
-    if (!(response.headers instanceof Headers)) {
-      return response.headers;
-    }
-    response.headers.forEach(function (value, name) {
-      res[name] = value;
-    });
-    return res;
+    this.headers = parseHeaders(response);
   }
 }
 
@@ -811,7 +798,7 @@ function isArrayEqual(arr1, arr2) {
   if (arr1.length !== arr2.length) {
     return false;
   }
-  return arr1.every(function(element, index) {
+  return arr1.every(function (element, index) {
     return element === arr2[index];
   });
 }
@@ -819,6 +806,20 @@ function isArrayEqual(arr1, arr2) {
 // Checks if ch is one of the following characters: SPACE, TAB, CR or LF.
 function isSpace(ch) {
   return (ch === 0x20 || ch === 0x09 || ch === 0x0D || ch === 0x0A);
+}
+
+function parseHeaders(response) {
+  const res = {};
+  if (!response || !response.headers) {
+    return res;
+  }
+  if (!(response.headers instanceof Headers)) {
+    return response.headers;
+  }
+  response.headers.forEach(function (value, name) {
+    res[name] = value;
+  });
+  return res;
 }
 
 /**
@@ -935,6 +936,7 @@ export {
   isLittleEndian,
   isEvalSupported,
   log2,
+  parseHeaders,
   readInt8,
   readUint16,
   readUint32,
@@ -948,5 +950,5 @@ export {
   stringToUTF8String,
   utf8StringToString,
   warn,
-  unreachable,
+  unreachable
 };

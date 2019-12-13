@@ -2036,7 +2036,7 @@ class WorkerTransport {
           reason = new UnexpectedResponseException(ex.message, ex.status, ex);
           break;
         case 'UnknownErrorException':
-          reason = new UnknownErrorException(ex.message, ex.details);
+          reason = new UnknownErrorException(ex.message, ex.details, ex);
           break;
       }
       if (typeof PDFJSDev === 'undefined' ||
