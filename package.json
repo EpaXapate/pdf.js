@@ -1,6 +1,6 @@
 {
   "name": "pdfjs-dist",
-  "version": "2.2.228",
+  "version": "2.2.230",
   "publishConfig": {
     "registry": "http://nexus.centralgest.com/repository/npm-private/"
   },
