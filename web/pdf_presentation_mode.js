@@ -92,8 +92,6 @@ class PDFPresentationMode {
       this.container.mozRequestFullScreen();
     } else if (this.container.webkitRequestFullscreen) {
       this.container.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-    } else if (this.container.msRequestFullscreen) {
-      this.container.msRequestFullscreen();
     } else {
       return false;
     }
@@ -151,8 +149,7 @@ class PDFPresentationMode {
     return !!(
       document.fullscreenElement ||
       document.mozFullScreen ||
-      document.webkitIsFullScreen ||
-      document.msFullscreenElement
+      document.webkitIsFullScreen
     );
   }
 
@@ -423,7 +420,7 @@ class PDFPresentationMode {
 
     window.addEventListener("mousemove", this.showControlsBind);
     window.addEventListener("mousedown", this.mouseDownBind);
-    window.addEventListener("wheel", this.mouseWheelBind);
+    window.addEventListener("wheel", this.mouseWheelBind, { passive: false });
     window.addEventListener("keydown", this.resetMouseScrollStateBind);
     window.addEventListener("contextmenu", this.contextMenuBind);
     window.addEventListener("touchstart", this.touchSwipeBind);
@@ -437,7 +434,9 @@ class PDFPresentationMode {
   _removeWindowListeners() {
     window.removeEventListener("mousemove", this.showControlsBind);
     window.removeEventListener("mousedown", this.mouseDownBind);
-    window.removeEventListener("wheel", this.mouseWheelBind);
+    window.removeEventListener("wheel", this.mouseWheelBind, {
+      passive: false,
+    });
     window.removeEventListener("keydown", this.resetMouseScrollStateBind);
     window.removeEventListener("contextmenu", this.contextMenuBind);
     window.removeEventListener("touchstart", this.touchSwipeBind);
@@ -476,7 +475,6 @@ class PDFPresentationMode {
         "webkitfullscreenchange",
         this.fullscreenChangeBind
       );
-      window.addEventListener("MSFullscreenChange", this.fullscreenChangeBind);
     }
   }
 
@@ -492,10 +490,6 @@ class PDFPresentationMode {
     if (typeof PDFJSDev === "undefined" || !PDFJSDev.test("MOZCENTRAL")) {
       window.removeEventListener(
         "webkitfullscreenchange",
-        this.fullscreenChangeBind
-      );
-      window.removeEventListener(
-        "MSFullscreenChange",
         this.fullscreenChangeBind
       );
     }

@@ -23,6 +23,8 @@ const MAX_AUTO_SCALE = 1.25;
 const SCROLLBAR_PADDING = 40;
 const VERTICAL_PADDING = 5;
 
+const LOADINGBAR_END_OFFSET_VAR = "--loadingBar-end-offset";
+
 const PresentationModeState = {
   UNKNOWN: 0,
   NORMAL: 1,
@@ -99,8 +101,6 @@ function getOutputScale(ctx) {
   const backingStoreRatio =
     ctx.webkitBackingStorePixelRatio ||
     ctx.mozBackingStorePixelRatio ||
-    ctx.msBackingStorePixelRatio ||
-    ctx.oBackingStorePixelRatio ||
     ctx.backingStorePixelRatio ||
     1;
   const pixelRatio = devicePixelRatio / backingStoreRatio;
@@ -164,7 +164,7 @@ function scrollIntoView(element, spot, skipOverflowHiddenElements = false) {
  * PDF.js friendly one: with scroll debounce and scroll direction.
  */
 function watchScroll(viewAreaElement, callback) {
-  const debounceScroll = function(evt) {
+  const debounceScroll = function (evt) {
     if (rAF) {
       return;
     }
@@ -229,7 +229,7 @@ function binarySearchFirstItem(items, condition) {
   let minIndex = 0;
   let maxIndex = items.length - 1;
 
-  if (items.length === 0 || !condition(items[maxIndex])) {
+  if (maxIndex < 0 || !condition(items[maxIndex])) {
     return items.length;
   }
   if (condition(items[minIndex])) {
@@ -564,7 +564,7 @@ function getVisibleElements(
     last = visible[visible.length - 1];
 
   if (sortByVisibility) {
-    visible.sort(function(a, b) {
+    visible.sort(function (a, b) {
       const pc = a.percent - b.percent;
       if (Math.abs(pc) > 0.001) {
         return -pc;
@@ -610,7 +610,7 @@ function getPDFFileNameFromURL(url, defaultFilename = "document.pdf") {
     return defaultFilename;
   }
   const reURI = /^(?:(?:[^:]+:)?\/\/[^\/]+)?([^?#]*)(\?[^#]*)?(#.*)?$/;
-  //            SCHEME        HOST         1.PATH  2.QUERY   3.REF
+  //              SCHEME        HOST         1.PATH  2.QUERY   3.REF
   // Pattern to get last matching NAME.pdf
   const reFilename = /[^\/?#=]+\.pdf\b(?!.*\.pdf\b)/i;
   const splitURI = reURI.exec(url);
@@ -636,13 +636,18 @@ function getPDFFileNameFromURL(url, defaultFilename = "document.pdf") {
   return suggestedFilename || defaultFilename;
 }
 
-function normalizeWheelEventDelta(evt) {
+function normalizeWheelEventDirection(evt) {
   let delta = Math.sqrt(evt.deltaX * evt.deltaX + evt.deltaY * evt.deltaY);
   const angle = Math.atan2(evt.deltaY, evt.deltaX);
   if (-0.25 * Math.PI < angle && angle < 0.75 * Math.PI) {
     // All that is left-up oriented has to change the sign.
     delta = -delta;
   }
+  return delta;
+}
+
+function normalizeWheelEventDelta(evt) {
+  let delta = normalizeWheelEventDirection(evt);
 
   const MOUSE_DOM_DELTA_PIXEL_MODE = 0;
   const MOUSE_DOM_DELTA_LINE_MODE = 1;
@@ -705,7 +710,7 @@ const WaitOnType = {
  * @returns {Promise} A promise that is resolved with a {WaitOnType} value.
  */
 function waitOnEventOrTimeout({ target, name, delay = 0 }) {
-  return new Promise(function(resolve, reject) {
+  return new Promise(function (resolve, reject) {
     if (
       typeof target !== "object" ||
       !(name && typeof name === "string") ||
@@ -716,7 +721,7 @@ function waitOnEventOrTimeout({ target, name, delay = 0 }) {
 
     function handler(type) {
       if (target instanceof EventBus) {
-        target.off(name, eventHandler);
+        target._off(name, eventHandler);
       } else {
         target.removeEventListener(name, eventHandler);
       }
@@ -729,7 +734,7 @@ function waitOnEventOrTimeout({ target, name, delay = 0 }) {
 
     const eventHandler = handler.bind(null, WaitOnType.EVENT);
     if (target instanceof EventBus) {
-      target.on(name, eventHandler);
+      target._on(name, eventHandler);
     } else {
       target.addEventListener(name, eventHandler);
     }
@@ -742,7 +747,7 @@ function waitOnEventOrTimeout({ target, name, delay = 0 }) {
 /**
  * Promise that is resolved when DOM window becomes visible.
  */
-const animationStarted = new Promise(function(resolve) {
+const animationStarted = new Promise(function (resolve) {
   if (
     typeof PDFJSDev !== "undefined" &&
     PDFJSDev.test("LIB && TESTING") &&
@@ -757,85 +762,132 @@ const animationStarted = new Promise(function(resolve) {
 });
 
 /**
- * Simple event bus for an application. Listeners are attached using the
- * `on` and `off` methods. To raise an event, the `dispatch` method shall be
- * used.
+ * NOTE: Only used to support various PDF viewer tests in `mozilla-central`.
+ */
+function dispatchDOMEvent(eventName, args = null) {
+  if (typeof PDFJSDev !== "undefined" && !PDFJSDev.test("MOZCENTRAL")) {
+    throw new Error("Not implemented: dispatchDOMEvent");
+  }
+  const details = Object.create(null);
+  if (args && args.length > 0) {
+    const obj = args[0];
+    for (const key in obj) {
+      const value = obj[key];
+      if (key === "source") {
+        if (value === window || value === document) {
+          return; // No need to re-dispatch (already) global events.
+        }
+        continue; // Ignore the `source` property.
+      }
+      details[key] = value;
+    }
+  }
+  const event = document.createEvent("CustomEvent");
+  event.initCustomEvent(eventName, true, true, details);
+  document.dispatchEvent(event);
+}
+
+/**
+ * Simple event bus for an application. Listeners are attached using the `on`
+ * and `off` methods. To raise an event, the `dispatch` method shall be used.
  */
 class EventBus {
-  constructor({ dispatchToDOM = false } = {}) {
+  constructor(options) {
     this._listeners = Object.create(null);
-    this._dispatchToDOM = dispatchToDOM === true;
+
+    if (typeof PDFJSDev === "undefined" || PDFJSDev.test("MOZCENTRAL")) {
+      this._isInAutomation = (options && options.isInAutomation) === true;
+    }
   }
 
+  /**
+   * @param {string} eventName
+   * @param {function} listener
+   */
   on(eventName, listener) {
-    let eventListeners = this._listeners[eventName];
-    if (!eventListeners) {
-      eventListeners = [];
-      this._listeners[eventName] = eventListeners;
-    }
-    eventListeners.push(listener);
+    this._on(eventName, listener, { external: true });
   }
 
+  /**
+   * @param {string} eventName
+   * @param {function} listener
+   */
   off(eventName, listener) {
-    const eventListeners = this._listeners[eventName];
-    let i;
-    if (!eventListeners || (i = eventListeners.indexOf(listener)) < 0) {
-      return;
-    }
-    eventListeners.splice(i, 1);
+    this._off(eventName, listener, { external: true });
   }
 
   dispatch(eventName) {
     const eventListeners = this._listeners[eventName];
     if (!eventListeners || eventListeners.length === 0) {
-      if (this._dispatchToDOM) {
+      if (
+        (typeof PDFJSDev === "undefined" || PDFJSDev.test("MOZCENTRAL")) &&
+        this._isInAutomation
+      ) {
         const args = Array.prototype.slice.call(arguments, 1);
-        this._dispatchDOMEvent(eventName, args);
+        dispatchDOMEvent(eventName, args);
       }
       return;
     }
     // Passing all arguments after the eventName to the listeners.
     const args = Array.prototype.slice.call(arguments, 1);
+    let externalListeners;
     // Making copy of the listeners array in case if it will be modified
     // during dispatch.
-    eventListeners.slice(0).forEach(function(listener) {
+    eventListeners.slice(0).forEach(function ({ listener, external }) {
+      if (external) {
+        if (!externalListeners) {
+          externalListeners = [];
+        }
+        externalListeners.push(listener);
+        return;
+      }
       listener.apply(null, args);
     });
-    if (this._dispatchToDOM) {
-      this._dispatchDOMEvent(eventName, args);
+    // Dispatch any "external" listeners *after* the internal ones, to give the
+    // viewer components time to handle events and update their state first.
+    if (externalListeners) {
+      externalListeners.forEach(function (listener) {
+        listener.apply(null, args);
+      });
+      externalListeners = null;
+    }
+    if (
+      (typeof PDFJSDev === "undefined" || PDFJSDev.test("MOZCENTRAL")) &&
+      this._isInAutomation
+    ) {
+      dispatchDOMEvent(eventName, args);
     }
   }
 
   /**
-   * @private
+   * @ignore
    */
-  _dispatchDOMEvent(eventName, args = null) {
-    const details = Object.create(null);
-    if (args && args.length > 0) {
-      const obj = args[0];
-      for (const key in obj) {
-        const value = obj[key];
-        if (key === "source") {
-          if (value === window || value === document) {
-            return; // No need to re-dispatch (already) global events.
-          }
-          continue; // Ignore the `source` property.
-        }
-        details[key] = value;
+  _on(eventName, listener, options = null) {
+    let eventListeners = this._listeners[eventName];
+    if (!eventListeners) {
+      this._listeners[eventName] = eventListeners = [];
+    }
+    eventListeners.push({
+      listener,
+      external: (options && options.external) === true,
+    });
+  }
+
+  /**
+   * @ignore
+   */
+  _off(eventName, listener, options = null) {
+    const eventListeners = this._listeners[eventName];
+    if (!eventListeners) {
+      return;
+    }
+    for (let i = 0, ii = eventListeners.length; i < ii; i++) {
+      if (eventListeners[i].listener === listener) {
+        eventListeners.splice(i, 1);
+        return;
       }
     }
-    const event = document.createEvent("CustomEvent");
-    event.initCustomEvent(eventName, true, true, details);
-    document.dispatchEvent(event);
   }
-}
-
-let globalEventBus = null;
-function getGlobalEventBus(dispatchToDOM = false) {
-  if (!globalEventBus) {
-    globalEventBus = new EventBus({ dispatchToDOM });
-  }
-  return globalEventBus;
 }
 
 function clamp(v, min, max) {
@@ -890,7 +942,8 @@ class ProgressBar {
     const container = viewer.parentNode;
     const scrollbarWidth = container.offsetWidth - viewer.offsetWidth;
     if (scrollbarWidth > 0) {
-      this.bar.style.width = `calc(100% - ${scrollbarWidth}px)`;
+      const doc = document.documentElement;
+      doc.style.setProperty(LOADINGBAR_END_OFFSET_VAR, `${scrollbarWidth}px`);
     }
   }
 
@@ -900,7 +953,6 @@ class ProgressBar {
     }
     this.visible = false;
     this.bar.classList.add("hidden");
-    document.body.classList.remove("loadingInProgress");
   }
 
   show() {
@@ -908,7 +960,6 @@ class ProgressBar {
       return;
     }
     this.visible = true;
-    document.body.classList.add("loadingInProgress");
     this.bar.classList.remove("hidden");
   }
 }
@@ -934,6 +985,28 @@ function moveToEndOfArray(arr, condition) {
   }
 }
 
+/**
+ * Get the active or focused element in current DOM.
+ *
+ * Recursively search for the truly active or focused element in case there are
+ * shadow DOMs.
+ *
+ * @returns {Element} the truly active or focused element.
+ */
+function getActiveOrFocusedElement() {
+  let curRoot = document;
+  let curActiveOrFocused =
+    curRoot.activeElement || curRoot.querySelector(":focus");
+
+  while (curActiveOrFocused && curActiveOrFocused.shadowRoot) {
+    curRoot = curActiveOrFocused.shadowRoot;
+    curActiveOrFocused =
+      curRoot.activeElement || curRoot.querySelector(":focus");
+  }
+
+  return curActiveOrFocused;
+}
+
 export {
   AutoPrintRegExp,
   CSS_UNITS,
@@ -956,8 +1029,6 @@ export {
   SpreadMode,
   NullL10n,
   EventBus,
-  getGlobalEventBus,
-  clamp,
   ProgressBar,
   getPDFFileNameFromURL,
   noContextMenuHandler,
@@ -971,9 +1042,11 @@ export {
   scrollIntoView,
   watchScroll,
   binarySearchFirstItem,
+  normalizeWheelEventDirection,
   normalizeWheelEventDelta,
   animationStarted,
   WaitOnType,
   waitOnEventOrTimeout,
   moveToEndOfArray,
+  getActiveOrFocusedElement,
 };

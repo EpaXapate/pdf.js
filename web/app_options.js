@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-import { apiCompatibilityParams } from "pdfjs-lib";
 import { viewerCompatibilityParams } from "./viewer_compatibility.js";
 
 const OptionKind = {
@@ -56,17 +55,17 @@ const defaultOptions = {
   /**
    * The `disablePreferences` is, conditionally, defined below.
    */
+  enablePermissions: {
+    /** @type {boolean} */
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
   enablePrintAutoRotate: {
     /** @type {boolean} */
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   enableWebGL: {
-    /** @type {boolean} */
-    value: false,
-    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
-  },
-  eventBusDispatchToDOM: {
     /** @type {boolean} */
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
@@ -82,6 +81,11 @@ const defaultOptions = {
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   historyUpdateUrl: {
+    /** @type {boolean} */
+    value: false,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+  },
+  ignoreDestinationZoom: {
     /** @type {boolean} */
     value: false,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
@@ -102,12 +106,14 @@ const defaultOptions = {
   },
   pdfBugEnabled: {
     /** @type {boolean} */
-    value: false,
+    value: typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION"),
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
-  /**
-   * The `printResolution` is, conditionally, defined below.
-   */
+  printResolution: {
+    /** @type {number} */
+    value: 150,
+    kind: OptionKind.VIEWER,
+  },
   renderer: {
     /** @type {string} */
     value: "canvas",
@@ -115,7 +121,7 @@ const defaultOptions = {
   },
   renderInteractiveForms: {
     /** @type {boolean} */
-    value: false,
+    value: true,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   sidebarViewOnLoad: {
@@ -157,21 +163,15 @@ const defaultOptions = {
   cMapUrl: {
     /** @type {string} */
     value:
-      (typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
+      typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
         ? "../external/bcmaps/"
-        : "../web/cmaps/"),
+        : "../web/cmaps/",
     kind: OptionKind.API,
   },
   disableAutoFetch: {
     /** @type {boolean} */
     value: false,
     kind: OptionKind.API + OptionKind.PREFERENCE,
-  },
-  disableCreateObjectURL: {
-    /** @type {boolean} */
-    value: false,
-    compatibility: apiCompatibilityParams.disableCreateObjectURL,
-    kind: OptionKind.API,
   },
   disableFontFace: {
     /** @type {boolean} */
@@ -191,6 +191,11 @@ const defaultOptions = {
   docBaseUrl: {
     /** @type {string} */
     value: "",
+    kind: OptionKind.API,
+  },
+  fontExtraProperties: {
+    /** @type {boolean} */
+    value: false,
     kind: OptionKind.API,
   },
   isEvalSupported: {
@@ -222,9 +227,9 @@ const defaultOptions = {
   workerSrc: {
     /** @type {string} */
     value:
-      (typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
+      typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
         ? "../src/worker_loader.js"
-        : "../build/pdf.worker.js"),
+        : "../build/pdf.worker.js",
     kind: OptionKind.WORKER,
   },
 };
@@ -239,12 +244,7 @@ if (
   };
   defaultOptions.locale = {
     /** @type {string} */
-    value: (typeof navigator !== "undefined" ? navigator.language : "en-US"),
-    kind: OptionKind.VIEWER,
-  };
-  defaultOptions.printResolution = {
-    /** @type {number} */
-    value: 150,
+    value: typeof navigator !== "undefined" ? navigator.language : "en-US",
     kind: OptionKind.VIEWER,
   };
 }

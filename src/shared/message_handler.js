@@ -116,24 +116,24 @@ class MessageHandler {
         throw new Error(`Unknown action from worker: ${data.action}`);
       }
       if (data.callbackId) {
-        const sourceName = this.sourceName;
-        const targetName = data.sourceName;
-        new Promise(function(resolve) {
+        const cbSourceName = this.sourceName;
+        const cbTargetName = data.sourceName;
+        new Promise(function (resolve) {
           resolve(action(data.data));
         }).then(
-          function(result) {
+          function (result) {
             comObj.postMessage({
-              sourceName,
-              targetName,
+              sourceName: cbSourceName,
+              targetName: cbTargetName,
               callback: CallbackKind.DATA,
               callbackId: data.callbackId,
               data: result,
             });
           },
-          function(reason) {
+          function (reason) {
             comObj.postMessage({
-              sourceName,
-              targetName,
+              sourceName: cbSourceName,
+              targetName: cbTargetName,
               callback: CallbackKind.ERROR,
               callbackId: data.callbackId,
               reason: wrapReason(reason),
@@ -369,10 +369,10 @@ class MessageHandler {
     streamSink.sinkCapability.resolve();
     streamSink.ready = streamSink.sinkCapability.promise;
     this.streamSinks[streamId] = streamSink;
-    new Promise(function(resolve) {
+    new Promise(function (resolve) {
       resolve(action(data.data, streamSink));
     }).then(
-      function() {
+      function () {
         comObj.postMessage({
           sourceName,
           targetName,
@@ -381,7 +381,7 @@ class MessageHandler {
           success: true,
         });
       },
-      function(reason) {
+      function (reason) {
         comObj.postMessage({
           sourceName,
           targetName,
@@ -445,10 +445,10 @@ class MessageHandler {
         // Reset desiredSize property of sink on every pull.
         this.streamSinks[streamId].desiredSize = data.desiredSize;
         const { onPull } = this.streamSinks[data.streamId];
-        new Promise(function(resolve) {
+        new Promise(function (resolve) {
           resolve(onPull && onPull());
         }).then(
-          function() {
+          function () {
             comObj.postMessage({
               sourceName,
               targetName,
@@ -457,7 +457,7 @@ class MessageHandler {
               success: true,
             });
           },
-          function(reason) {
+          function (reason) {
             comObj.postMessage({
               sourceName,
               targetName,
@@ -515,10 +515,10 @@ class MessageHandler {
           break;
         }
         const { onCancel } = this.streamSinks[data.streamId];
-        new Promise(function(resolve) {
+        new Promise(function (resolve) {
           resolve(onCancel && onCancel(wrapReason(data.reason)));
         }).then(
-          function() {
+          function () {
             comObj.postMessage({
               sourceName,
               targetName,
@@ -527,7 +527,7 @@ class MessageHandler {
               success: true,
             });
           },
-          function(reason) {
+          function (reason) {
             comObj.postMessage({
               sourceName,
               targetName,
@@ -559,7 +559,7 @@ class MessageHandler {
         this.streamControllers[streamId].startCall,
         this.streamControllers[streamId].pullCall,
         this.streamControllers[streamId].cancelCall,
-      ].map(function(capability) {
+      ].map(function (capability) {
         return capability && capability.promise;
       })
     );
